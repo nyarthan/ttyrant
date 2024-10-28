@@ -93,8 +93,10 @@ impl ApplicationHandler for Application {
                     if let Some(pty) = &mut self.pty {
                         match event.logical_key {
                             Key::Character(c) => {
-                                println!("pressed key {c}");
                                 let _ = pty.write(c.as_bytes());
+                            }
+                            Key::Named(NamedKey::Space) => {
+                                let _ = pty.write(" ".as_bytes());
                             }
                             Key::Named(NamedKey::Enter) => {
                                 let _ = pty.write(b"\r");
@@ -118,31 +120,6 @@ impl ApplicationHandler for Application {
 
                 let inner_size = window.inner_size();
 
-                text_renderer
-                    .prepare(
-                        device,
-                        queue,
-                        font_system,
-                        atlas,
-                        viewport,
-                        [TextArea {
-                            buffer: text_buffer,
-                            left: 0.0,
-                            top: 0.0,
-                            scale: 1.0,
-                            bounds: TextBounds {
-                                left: 0,
-                                top: 0,
-                                right: inner_size.width as i32,
-                                bottom: inner_size.height as i32,
-                            },
-                            default_color: Color::rgb(255, 255, 255),
-                            custom_glyphs: &[],
-                        }],
-                        swash_cache,
-                    )
-                    .unwrap();
-
                 let mut content_updated = false;
                 if let Some(pty) = &self.pty {
                     while let Some(output) = pty.try_read() {
@@ -162,6 +139,31 @@ impl ApplicationHandler for Application {
                         .text_buffer
                         .shape_until_scroll(&mut state.font_system, false);
                 }
+
+                text_renderer
+                    .prepare(
+                        device,
+                        queue,
+                        &mut state.font_system,
+                        atlas,
+                        viewport,
+                        [TextArea {
+                            buffer: &mut state.text_buffer,
+                            left: 0.0,
+                            top: 0.0,
+                            scale: 1.0,
+                            bounds: TextBounds {
+                                left: 0,
+                                top: 0,
+                                right: inner_size.width as i32,
+                                bottom: inner_size.height as i32,
+                            },
+                            default_color: Color::rgb(255, 255, 255),
+                            custom_glyphs: &[],
+                        }],
+                        swash_cache,
+                    )
+                    .unwrap();
 
                 let frame = surface.get_current_texture().unwrap();
                 let view = frame.texture.create_view(&TextureViewDescriptor::default());
