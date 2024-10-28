@@ -1,5 +1,23 @@
 use crate::vt::{Action, VTParser};
 
+macro_rules! parse_color {
+    ($iter:expr, $color_type:ident) => {
+        match $iter.next() {
+            Some(5) => {
+                if let Some(color) = $iter.next() {
+                    return Some($color_type(Color::Indexed(color as u8)));
+                }
+            }
+            Some(2) => {
+                if let (Some(r), Some(g), Some(b)) = ($iter.next(), $iter.next(), $iter.next()) {
+                    return Some($color_type(Color::RGB(r as u8, g as u8, b as u8)));
+                }
+            }
+            _ => {}
+        }
+    };
+}
+
 #[derive(Debug, PartialEq)]
 pub enum Color {
     Default,
@@ -17,9 +35,42 @@ pub enum AnsiCommand {
     CursorPosition(u16, u16),
     EraseInDisplay(u8),
     EraseInLine(u8),
-    SetForegroundColor(Color),
-    SetBackgroundColor(Color),
+    Sgr(Option<Sgr>),
+}
+
+/// this shit is not exhaustive
+#[derive(Debug, PartialEq)]
+pub enum Sgr {
     Reset,
+    Bold,
+    Faint,
+    Italic,
+    Underlined(bool),
+    Blink(BlinkInterval),
+    Inverted(bool),
+    Conceal(bool),
+    CrossedOut(bool),
+    PrimaryFont,
+    AlternativeFont(u8),
+    Fraktur,
+    DoublyUnderlined,
+    Regular,
+    NeitherItalicNorBlackletter,
+    ProportionalSpacing(bool),
+    ForegroundColor(Color),
+    BackgroundColor(Color),
+    Framed,
+    Encircled,
+    Overlined(bool),
+    NeitherFramedNorEncircled,
+    UnderlineColor(Color),
+}
+
+#[derive(Debug, PartialEq)]
+pub enum BlinkInterval {
+    Slow,
+    Rapid,
+    Static,
 }
 
 #[derive(Default)]
@@ -66,7 +117,7 @@ impl AnsiParser {
                     }
                     b'J' => Some(EraseInDisplay(p1 as u8)),
                     b'K' => Some(EraseInLine(p1 as u8)),
-                    b'm' => self.interpret_sgr(&params),
+                    b'm' => Some(AnsiCommand::Sgr(self.interpret_sgr(&params))),
                     _ => None,
                 }
             }
@@ -74,8 +125,8 @@ impl AnsiParser {
         }
     }
 
-    fn interpret_sgr(&self, params: &[Option<i32>]) -> Option<AnsiCommand> {
-        use AnsiCommand::*;
+    fn interpret_sgr(&self, params: &[Option<i32>]) -> Option<Sgr> {
+        use Sgr::*;
 
         if params.is_empty() {
             return Some(Reset);
@@ -86,38 +137,41 @@ impl AnsiParser {
             dbg!(code);
             match code {
                 0 => return Some(Reset),
-                30..=37 => return Some(SetForegroundColor(Color::Indexed((code - 30) as u8))),
-                38 => match iter.next() {
-                    Some(5) => {
-                        if let Some(color) = iter.next() {
-                            return Some(SetForegroundColor(Color::Indexed(color as u8)));
-                        }
-                    }
-                    Some(2) => {
-                        if let (Some(r), Some(g), Some(b)) = (iter.next(), iter.next(), iter.next())
-                        {
-                            return Some(SetForegroundColor(Color::RGB(r as u8, g as u8, b as u8)));
-                        }
-                    }
-                    _ => {}
-                },
-                39 => return Some(SetForegroundColor(Color::Default)),
-                40..=47 => return Some(SetBackgroundColor(Color::Indexed((code - 40) as u8))),
-                48 => match iter.next() {
-                    Some(5) => {
-                        if let Some(color) = iter.next() {
-                            return Some(SetBackgroundColor(Color::Indexed(color as u8)));
-                        }
-                    }
-                    Some(2) => {
-                        if let (Some(r), Some(g), Some(b)) = (iter.next(), iter.next(), iter.next())
-                        {
-                            return Some(SetBackgroundColor(Color::RGB(r as u8, g as u8, b as u8)));
-                        }
-                    }
-                    _ => {}
-                },
-                49 => return Some(SetBackgroundColor(Color::Default)),
+                1 => return Some(Bold),
+                2 => return Some(Faint),
+                3 => return Some(Italic),
+                4 => return Some(Underlined(true)),
+                5 => return Some(Blink(BlinkInterval::Slow)),
+                6 => return Some(Blink(BlinkInterval::Rapid)),
+                7 => return Some(Inverted(true)),
+                8 => return Some(Conceal(true)),
+                9 => return Some(CrossedOut(true)),
+                10 => return Some(PrimaryFont),
+                11..=19 => return Some(AlternativeFont((code - 10) as u8)),
+                20 => return Some(Fraktur),
+                21 => return Some(DoublyUnderlined),
+                22 => return Some(Regular),
+                23 => return Some(NeitherItalicNorBlackletter),
+                24 => return Some(Underlined(false)),
+                25 => return Some(Blink(BlinkInterval::Static)),
+                26 => return Some(ProportionalSpacing(true)),
+                27 => return Some(Inverted(false)),
+                28 => return Some(Conceal(false)),
+                29 => return Some(CrossedOut(false)),
+                30..=37 => return Some(ForegroundColor(Color::Indexed((code - 30) as u8))),
+                38 => parse_color!(iter, ForegroundColor),
+                39 => return Some(ForegroundColor(Color::Default)),
+                40..=47 => return Some(BackgroundColor(Color::Indexed((code - 40) as u8))),
+                48 => parse_color!(iter, BackgroundColor),
+                49 => return Some(BackgroundColor(Color::Default)),
+                50 => return Some(ProportionalSpacing(false)),
+                51 => return Some(Framed),
+                52 => return Some(Encircled),
+                53 => return Some(Overlined(true)),
+                54 => return Some(NeitherFramedNorEncircled),
+                55 => return Some(Overlined(false)),
+                58 => parse_color!(iter, UnderlineColor),
+                59 => return Some(UnderlineColor(Color::Default)),
                 _ => {}
             }
         }
@@ -197,14 +251,18 @@ mod tests {
         assert_eq!(
             output,
             vec![
-                SetForegroundColor(Color::Indexed(1)),
-                SetForegroundColor(Color::Indexed(123)),
-                SetForegroundColor(Color::RGB(1, 12, 123)),
-                SetForegroundColor(Color::Default),
-                SetBackgroundColor(Color::Indexed(1)),
-                SetBackgroundColor(Color::Indexed(123)),
-                SetBackgroundColor(Color::RGB(1, 12, 123)),
-                SetBackgroundColor(Color::Default),
+                Sgr(Some(crate::ansi::Sgr::ForegroundColor(Color::Indexed(1)))),
+                Sgr(Some(crate::ansi::Sgr::ForegroundColor(Color::Indexed(123)))),
+                Sgr(Some(crate::ansi::Sgr::ForegroundColor(Color::RGB(
+                    1, 12, 123
+                )))),
+                Sgr(Some(crate::ansi::Sgr::ForegroundColor(Color::Default))),
+                Sgr(Some(crate::ansi::Sgr::BackgroundColor(Color::Indexed(1)))),
+                Sgr(Some(crate::ansi::Sgr::BackgroundColor(Color::Indexed(123)))),
+                Sgr(Some(crate::ansi::Sgr::BackgroundColor(Color::RGB(
+                    1, 12, 123
+                )))),
+                Sgr(Some(crate::ansi::Sgr::BackgroundColor(Color::Default))),
             ]
         );
     }
