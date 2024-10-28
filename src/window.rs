@@ -1,9 +1,6 @@
 use std::sync::Arc;
 
-use glyphon::{
-    fontdb::{Query, Source},
-    Attrs, Family, FontSystem, Shaping, SwashCache, TextAtlas, TextRenderer, Viewport,
-};
+use glyphon::{FontSystem, SwashCache, TextAtlas, TextRenderer, Viewport};
 use winit::window::Window;
 
 use wgpu::{
@@ -85,7 +82,6 @@ impl WindowState {
             Some(physical_width),
             Some(physical_height),
         );
-        // text_buffer.set_text(&mut font_system, "ABCDEFG\n   G", Attrs::new().family(Family::Monospace), Shaping::Advanced);
         text_buffer.shape_until_scroll(&mut font_system, false);
 
         Self {

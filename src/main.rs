@@ -1,9 +1,4 @@
-use std::fs::File;
-use std::io::Read;
-
 use application::Application;
-use nix::pty::{forkpty, ForkptyResult};
-use nix::unistd::execvp;
 use winit::event_loop::EventLoop;
 
 mod application;
