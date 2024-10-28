@@ -1,18 +1,24 @@
 use std::sync::Arc;
 
-use glyphon::{Color, Resolution, TextArea, TextBounds};
+use glyphon::{Attrs, Color, Family, Resolution, Shaping, TextArea, TextBounds};
 use wgpu::{
     CommandEncoderDescriptor, LoadOp, Operations, RenderPassColorAttachment, RenderPassDescriptor,
     TextureViewDescriptor,
 };
 use winit::{
-    application::ApplicationHandler, dpi::LogicalSize, event::WindowEvent, window::Window,
+    application::ApplicationHandler,
+    dpi::LogicalSize,
+    event::WindowEvent,
+    keyboard::{Key, NamedKey},
+    window::Window,
 };
 
-use crate::window::WindowState;
+use crate::{pty::Pty, window::WindowState};
 
 pub struct Application {
     window_state: Option<WindowState>,
+    pty: Option<Pty>,
+    content: String,
 }
 
 impl Application {
@@ -23,7 +29,11 @@ impl Application {
 
 impl Default for Application {
     fn default() -> Self {
-        Self { window_state: None }
+        Self {
+            window_state: None,
+            pty: None,
+            content: String::new(),
+        }
     }
 }
 
@@ -43,7 +53,8 @@ impl ApplicationHandler for Application {
                 .expect("create window"),
         );
 
-        self.window_state = Some(pollster::block_on(WindowState::new(window)));
+        self.window_state = Some(pollster::block_on(WindowState::new(window.clone())));
+        self.pty = Some(Pty::new(Arc::downgrade(&window)));
     }
 
     fn window_event(
@@ -77,6 +88,25 @@ impl ApplicationHandler for Application {
                 surface.configure(&device, &surface_config);
                 window.request_redraw();
             }
+            WindowEvent::KeyboardInput { event, .. } => {
+                if event.state.is_pressed() {
+                    if let Some(pty) = &mut self.pty {
+                        match event.logical_key {
+                            Key::Character(c) => {
+                                println!("pressed key {c}");
+                                let _ = pty.write(c.as_bytes());
+                            }
+                            Key::Named(NamedKey::Enter) => {
+                                let _ = pty.write(b"\r");
+                            }
+                            Key::Named(NamedKey::Backspace) => {
+                                let _ = pty.write(b"\x7f");
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+            }
             WindowEvent::RedrawRequested => {
                 viewport.update(
                     &queue,
@@ -85,6 +115,8 @@ impl ApplicationHandler for Application {
                         height: surface_config.height,
                     },
                 );
+
+                let inner_size = window.inner_size();
 
                 text_renderer
                     .prepare(
@@ -95,14 +127,14 @@ impl ApplicationHandler for Application {
                         viewport,
                         [TextArea {
                             buffer: text_buffer,
-                            left: 10.0,
-                            top: 10.0,
+                            left: 0.0,
+                            top: 0.0,
                             scale: 1.0,
                             bounds: TextBounds {
                                 left: 0,
                                 top: 0,
-                                right: 600,
-                                bottom: 160,
+                                right: inner_size.width as i32,
+                                bottom: inner_size.height as i32,
                             },
                             default_color: Color::rgb(255, 255, 255),
                             custom_glyphs: &[],
@@ -110,6 +142,26 @@ impl ApplicationHandler for Application {
                         swash_cache,
                     )
                     .unwrap();
+
+                let mut content_updated = false;
+                if let Some(pty) = &self.pty {
+                    while let Some(output) = pty.try_read() {
+                        self.content.push_str(&output);
+                        content_updated = true;
+                    }
+                }
+
+                if content_updated {
+                    state.text_buffer.set_text(
+                        &mut state.font_system,
+                        &self.content,
+                        Attrs::new().family(Family::Monospace),
+                        Shaping::Advanced,
+                    );
+                    state
+                        .text_buffer
+                        .shape_until_scroll(&mut state.font_system, false);
+                }
 
                 let frame = surface.get_current_texture().unwrap();
                 let view = frame.texture.create_view(&TextureViewDescriptor::default());
@@ -141,5 +193,8 @@ impl ApplicationHandler for Application {
             }
             _ => {}
         }
+    }
+    fn exiting(&mut self, _event_loop: &winit::event_loop::ActiveEventLoop) {
+        self.pty = None
     }
 }
