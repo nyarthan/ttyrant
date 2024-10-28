@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
-use glyphon::{Family, FontSystem, Shaping, SwashCache, TextAtlas, TextRenderer, Viewport};
+use glyphon::{
+    fontdb::{Query, Source},
+    Attrs, Family, FontSystem, Shaping, SwashCache, TextAtlas, TextRenderer, Viewport,
+};
 use winit::window::Window;
 
 use wgpu::{
@@ -61,6 +64,10 @@ impl WindowState {
         surface.configure(&device, &surface_config);
 
         let mut font_system = FontSystem::new();
+        font_system
+            .db_mut()
+            .set_monospace_family("JetBrains Mono NL");
+
         let swash_cache = SwashCache::new();
         let cache = glyphon::Cache::new(&device);
         let viewport = Viewport::new(&device, &cache);
@@ -78,10 +85,7 @@ impl WindowState {
             Some(physical_width),
             Some(physical_height),
         );
-        text_buffer.set_text(&mut font_system,
-            "Hello world! 👋\nThis is rendered with 🦅 glyphon 🦁\nThe text below should be partially clipped.\na b c d e f g h i j k l m n o p q r s t u v w x y z",
-            glyphon::Attrs::new().family(Family::SansSerif),
-            Shaping::Advanced);
+        // text_buffer.set_text(&mut font_system, "ABCDEFG\n   G", Attrs::new().family(Family::Monospace), Shaping::Advanced);
         text_buffer.shape_until_scroll(&mut font_system, false);
 
         Self {
