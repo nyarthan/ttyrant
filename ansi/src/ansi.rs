@@ -3,17 +3,17 @@ use crate::vt::{Action, VTParser};
 macro_rules! parse_color {
     ($iter:expr, $color_type:ident) => {
         match $iter.next() {
-            Some(5) => {
-                if let Some(color) = $iter.next() {
-                    return Some($color_type(Color::Indexed(color as u8)));
+            Some(5) => match $iter.next() {
+                Some(color) => Some($color_type(Color::Indexed(color as u8))),
+                None => None,
+            },
+            Some(2) => match ($iter.next(), $iter.next(), $iter.next()) {
+                (Some(r), Some(g), Some(b)) => {
+                    Some($color_type(Color::RGB(r as u8, g as u8, b as u8)))
                 }
-            }
-            Some(2) => {
-                if let (Some(r), Some(g), Some(b)) = ($iter.next(), $iter.next(), $iter.next()) {
-                    return Some($color_type(Color::RGB(r as u8, g as u8, b as u8)));
-                }
-            }
-            _ => {}
+                _ => None,
+            },
+            _ => None,
         }
     };
 }
@@ -159,10 +159,10 @@ impl AnsiParser {
                 28 => return Some(Conceal(false)),
                 29 => return Some(CrossedOut(false)),
                 30..=37 => return Some(ForegroundColor(Color::Indexed((code - 30) as u8))),
-                38 => parse_color!(iter, ForegroundColor),
+                38 => return parse_color!(iter, ForegroundColor),
                 39 => return Some(ForegroundColor(Color::Default)),
                 40..=47 => return Some(BackgroundColor(Color::Indexed((code - 40) as u8))),
-                48 => parse_color!(iter, BackgroundColor),
+                48 => return parse_color!(iter, BackgroundColor),
                 49 => return Some(BackgroundColor(Color::Default)),
                 50 => return Some(ProportionalSpacing(false)),
                 51 => return Some(Framed),
@@ -170,7 +170,7 @@ impl AnsiParser {
                 53 => return Some(Overlined(true)),
                 54 => return Some(NeitherFramedNorEncircled),
                 55 => return Some(Overlined(false)),
-                58 => parse_color!(iter, UnderlineColor),
+                58 => return parse_color!(iter, UnderlineColor),
                 59 => return Some(UnderlineColor(Color::Default)),
                 _ => {}
             }
