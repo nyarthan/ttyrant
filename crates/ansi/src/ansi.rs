@@ -89,7 +89,6 @@ impl AnsiParser {
     {
         for &byte in data {
             let action = self.vt_parser.parse_byte(byte);
-            dbg!(&action);
             if let Some(command) = self.interpret_action(action) {
                 callback(command);
             }
@@ -134,7 +133,6 @@ impl AnsiParser {
 
         let mut iter = params.iter().flatten().copied();
         while let Some(code) = iter.next() {
-            dbg!(code);
             match code {
                 0 => return Some(Reset),
                 1 => return Some(Bold),

@@ -1,9 +1,11 @@
+use std::fmt::{self, Display, LowerHex, UpperHex};
+
 use enum_meta::EnumMeta;
 use enum_repr_convert::ConvertRepr;
 
 /// C0 control codes following [ISO/IEC 2022](https://en.wikipedia.org/wiki/ISO/IEC_2022)
 /// specification.
-#[derive(Debug, PartialEq, EnumMeta, ConvertRepr)]
+#[derive(Debug, PartialEq, Copy, Clone, EnumMeta, ConvertRepr)]
 #[repr(u8)]
 #[meta_attrs(caret_notation, abbreviation)]
 pub enum C0 {
@@ -77,6 +79,26 @@ pub enum C0 {
     /// Technically not part of C0 range
     #[meta(caret_notation = "^?", abbreviation = "DEL")]
     Delete = 0x7F,
+}
+
+impl Display for C0 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.caret_notation())
+    }
+}
+
+impl LowerHex for C0 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let value: u8 = (*self).into();
+        write!(f, "{:x}", value)
+    }
+}
+
+impl UpperHex for C0 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let value: u8 = (*self).into();
+        write!(f, "{:X}", value)
+    }
 }
 
 #[cfg(test)]
