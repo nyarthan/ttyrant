@@ -49,6 +49,7 @@
                 pkgs.cargo
                 pkgs.rustc
                 pkgs.rustfmt
+                pkgs.cargo-expand
               ]
               ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
                 pkgs.libiconv
