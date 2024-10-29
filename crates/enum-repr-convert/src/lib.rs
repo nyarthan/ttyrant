@@ -1,6 +1,8 @@
+use heck::ToShoutySnakeCase;
 use proc_macro::TokenStream;
+use proc_macro2::Span;
 use quote::quote;
-use syn::{parse_macro_input, DeriveInput, Expr, ExprLit, Lit, Meta, Path};
+use syn::{parse_macro_input, DeriveInput, Expr, ExprLit, Ident, Lit, Meta, Path};
 
 #[proc_macro_derive(ConvertRepr)]
 pub fn derive_enum_meta(input: TokenStream) -> TokenStream {
@@ -43,6 +45,16 @@ pub fn derive_enum_meta(input: TokenStream) -> TokenStream {
         }
     }
 
+    let const_reprs = variants.iter().map(|(variant_ident, discriminant)| {
+        let variant_ident = Ident::new(
+            variant_ident.to_string().to_shouty_snake_case().as_str(),
+            Span::call_site(),
+        );
+        quote! {
+            pub const #variant_ident: #repr_type = #discriminant
+        }
+    });
+
     let from_arms = variants.iter().map(|(variant_ident, discriminant)| {
         quote! {
             #enum_name::#variant_ident => #discriminant
@@ -56,6 +68,10 @@ pub fn derive_enum_meta(input: TokenStream) -> TokenStream {
     });
 
     let expanded = quote! {
+        impl #enum_name {
+            #(#const_reprs;)*
+        }
+
         impl std::convert::From<#enum_name> for #repr_type {
             #[inline]
             fn from(value: #enum_name) -> Self {
