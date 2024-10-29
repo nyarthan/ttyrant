@@ -1,11 +1,7 @@
-[package]
-name = "ttyrant"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-glyphon = "0.6.0"
-nix = { version = "0.29.0", features = ["poll", "process", "term"] }
-pollster = "0.3.0"
-wgpu = "22.1.0"
-winit = "0.30.5"
+[workspace]
+resolver = "2"
+members = [
+	"crates/ttyrant",
+	"crates/ansi",
+	"crates/enum-meta",
+]

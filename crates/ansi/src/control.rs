@@ -1,3 +1,5 @@
+/// C0 control codes following [ISO/IEC 2022](https://en.wikipedia.org/wiki/ISO/IEC_2022)
+/// specification.
 #[derive(Debug, PartialEq)]
 pub enum C0 {
     Null,

@@ -26,7 +26,7 @@ pub enum Color {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum AnsiCommand {
+pub enum Csi {
     Print(char),
     CursorUp(u16),
     CursorDown(u16),
@@ -85,7 +85,7 @@ impl AnsiParser {
 
     pub fn parse<F>(&mut self, data: &[u8], mut callback: F)
     where
-        F: FnMut(AnsiCommand),
+        F: FnMut(Csi),
     {
         for &byte in data {
             let action = self.vt_parser.parse_byte(byte);
@@ -96,8 +96,8 @@ impl AnsiParser {
         }
     }
 
-    fn interpret_action(&self, action: Action) -> Option<AnsiCommand> {
-        use AnsiCommand::*;
+    fn interpret_action(&self, action: Action) -> Option<Csi> {
+        use Csi::*;
 
         match action {
             Action::Print(c) => Some(Print(c)),
@@ -117,7 +117,7 @@ impl AnsiParser {
                     }
                     b'J' => Some(EraseInDisplay(p1 as u8)),
                     b'K' => Some(EraseInLine(p1 as u8)),
-                    b'm' => Some(AnsiCommand::Sgr(self.interpret_sgr(&params))),
+                    b'm' => Some(Csi::Sgr(self.interpret_sgr(&params))),
                     _ => None,
                 }
             }
@@ -182,7 +182,7 @@ impl AnsiParser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use AnsiCommand::*;
+    use Csi::*;
 
     #[test]
     fn simple_text() {
