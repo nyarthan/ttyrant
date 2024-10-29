@@ -148,6 +148,117 @@ impl UpperHex for C0 {
     }
 }
 
+#[derive(Debug, PartialEq, Copy, Clone, EnumMeta, ConvertRepr)]
+#[repr(u8)]
+#[meta_attrs(notation, abbreviation)]
+pub enum C1 {
+    /// Proposed as a "padding" or "high byte" for single-byte characters to make them two bytes long for easier interoperability with [multiple byte characters](https://www.wikiwand.com/en/articles/Variable-width_encoding).
+    /// [Extended Unix Code](https://www.wikiwand.com/en/articles/Extended_Unix_Code) (EUC) occasionally uses this.
+    #[meta(notation = "@", abbreviation = "PAD")]
+    PaddingCharacter = 0x80,
+    /// Proposed to set the high byte of a sequence of [multiple byte characters](https://www.wikiwand.com/en/articles/Variable-width_encoding) so they only need one byte each, as a simple form of data compression.
+    #[meta(notation = "A", abbreviation = "HOP")]
+    HighOctetPreset = 0x81,
+    /// Follows a graphic character where a line break is permitted.
+    /// Roughly equivalent to a [soft hyphen](https://www.wikiwand.com/en/articles/Soft_hyphen) or [zero-width](https://www.wikiwand.com/en/articles/Zero-width_space) space except it does not define what is printed at the line break.
+    #[meta(notation = "B", abbreviation = "BHP")]
+    BreakPermittedHere = 0x82,
+    /// Follows the graphic character that is not to be broken. See also [word joiner](https://www.wikiwand.com/en/articles/Word_joiner).
+    #[meta(notation = "C", abbreviation = "NBH")]
+    NoBreakHere = 0x83,
+    /// Move down one line without moving horizontally, to eliminate ambiguity about the meaning of [`LF`](C0::LineFeed).
+    #[meta(notation = "D", abbreviation = "IND")]
+    Index = 0x84,
+    /// Equivalent to [`CR`](C0::CarriageReturn)+[`LF`](C0::LineFeed), to match the [EBCDIC](https://www.wikiwand.com/en/articles/EBCDIC) control character.
+    #[meta(notation = "E", abbreviation = "NEL")]
+    NextLine = 0x85,
+    /// Used by [block-oriented terminals](https://www.wikiwand.com/en/articles/Block-oriented_terminal).
+    /// In [xterm](https://www.wikiwand.com/en/articles/Xterm) [`ESC`](C0::Escape)+[`SSA`](C1::StartOfSelectedArea) moves to the lower-left corner of the screen, since certain software assumes this behaviour.
+    #[meta(notation = "F", abbreviation = "SSA")]
+    StartOfSelectedArea = 0x86,
+    /// Used by [block-oriented terminals](https://www.wikiwand.com/en/articles/Block-oriented_terminal).
+    #[meta(notation = "G", abbreviation = "ESA")]
+    EndOfSelectedArea = 0x87,
+    /// Set a tab stop at the current position.
+    #[meta(notation = "H", abbreviation = "HTS")]
+    CharacterTabulationSet = 0x88,
+    /// Right-justify the text since the last tab against the next tab stop.
+    #[meta(notation = "I", abbreviation = "HTJ")]
+    CharacterTabulationWithJustification = 0x89,
+    /// Set a vertical tab stop.
+    #[meta(notation = "J", abbreviation = "VTS")]
+    LineTabulationSet = 0x8A,
+    /// To produce subscripts and superscripts in [ISO/IEC 6429](https://www.wikiwand.com/en/articles/ISO/IEC_6429).
+    /// Subscripts use [`PLD`](C1::PartialLineForward)+`text`+[`PLU`](C1::PartialLineBackward) while superscripts use [`PLU`](C1::PartialLineBackward) text [`PLD`](C1::PartialLineForward).
+    #[meta(notation = "K", abbreviation = "PLD")]
+    PartialLineForward = 0x8B,
+    /// To produce subscripts and superscripts in [ISO/IEC 6429](https://www.wikiwand.com/en/articles/ISO/IEC_6429).
+    /// Subscripts use [`PLD`](C1::PartialLineForward)+`text`+[`PLU`](C1::PartialLineBackward) while superscripts use [`PLU`](C1::PartialLineBackward) text [`PLD`](C1::PartialLineForward).
+    #[meta(notation = "L", abbreviation = "PLU")]
+    PartialLineBackward = 0x8C,
+    /// Move up one line.
+    #[meta(notation = "M", abbreviation = "RI")]
+    ReverseLineFeed = 0x8D,
+    /// Next character is from the G2 or G3 sets, respectively.
+    #[meta(notation = "N", abbreviation = "SS2")]
+    SingleShift2 = 0x8E,
+    /// Next character is from the G2 or G3 sets, respectively.
+    #[meta(notation = "O", abbreviation = "SS3")]
+    SingleShift3 = 0x8F,
+    /// Followed by a string of printable characters (`0x20` through `0x7E`) and format effectors (`0x08` through `0x0D`), terminated by [`ST`](C1::StringTerminator) (`0x9C`).
+    /// [Xterm](https://www.wikiwand.com/en/articles/Xterm) defined a number of these.
+    #[meta(notation = "P", abbreviation = "DCS")]
+    DeviceControlString = 0x90,
+    /// Reserved for private function agreed on between the sender and the recipient of the data.
+    #[meta(notation = "Q", abbreviation = "PU1")]
+    PrivateUser1 = 0x91,
+    /// Reserved for private function agreed on between the sender and the recipient of the data.
+    #[meta(notation = "R", abbreviation = "PU2")]
+    PrivateUser2 = 0x92,
+    ///
+    #[meta(notation = "S", abbreviation = "STS")]
+    SetTransmitState = 0x93,
+    /// Destructive backspace, to eliminate ambiguity about meaning of [`BS`](C0::Backspace).
+    #[meta(notation = "T", abbreviation = "CCH")]
+    CancelCharacter = 0x94,
+    ///
+    #[meta(notation = "U", abbreviation = "MW")]
+    MessageWaiting = 0x95,
+    /// Used by [block-oriented terminals](https://www.wikiwand.com/en/articles/Block-oriented_terminal).
+    #[meta(notation = "V", abbreviation = "SPA")]
+    StartOfProtectedArea = 0x96,
+    /// Used by [block-oriented terminals](https://www.wikiwand.com/en/articles/Block-oriented_terminal).
+    #[meta(notation = "W", abbreviation = "EPA")]
+    EndOfProtectedArea = 0x97,
+    /// Followed by a control string terminated by [`ST`](C1::StringTerminator) (0x9C) which (unlike [`DCS`](C1::DeviceControlString), [`OSC`](C1::OperatingSystemCommand), [`PM`](C1::PrivacyMessage) or [`APC`](C1::ApplicationProgramCommand)) may contain any character except [`SOS`](C1::StartOfString) or [`ST`](C1::StringTerminator).
+    #[meta(notation = "X", abbreviation = "SOS")]
+    StartOfString = 0x98,
+    /// Intended to allow an arbitrary [Unicode](https://www.wikiwand.com/en/articles/Unicode) character to be printed; it would be followed by that character, most likely encoded in [UTF-1](https://www.wikiwand.com/en/articles/UTF-1).
+    #[meta(notation = "Y", abbreviation = "SGC")]
+    SingleGraphicCharacterIntroducer = 0x99,
+    /// To be followed by a single printable character (`0x20` through `0x7E`) or format effector (`0x08` through `0x0D`), and to print it as ASCII no matter what graphic or control sets were in use.
+    #[meta(notation = "Z", abbreviation = "SCI")]
+    SingleCharacterIntroducer = 0x9A,
+    /// Used to introduce control sequences that take parameters. Used for [ANSI escape sequences](https://www.wikiwand.com/en/articles/ANSI_escape_sequences).
+    #[meta(notation = "[", abbreviation = "CSI")]
+    ControlSequenceIntroducer = 0x9B,
+    /// Terminates a string started by [`DCS`](C1::DeviceControlString), [`SOS`](C1::StartOfString), [`OSC`](C1::OperatingSystemCommand), [`PM`](C1::PrivacyMessage) or [`APC`](C1::ApplicationProgramCommand).
+    #[meta(notation = "\\", abbreviation = "ST")]
+    StringTerminator = 0x9C,
+    /// Followed by a string of printable characters (`0x20` through `0x7E`) and format effectors (`0x08` through `0x0D`), terminated by [`ST`](C1::StringTerminator) (0x9C), intended for use to allow in-band signaling of protocol information, but rarely used for that purpose.
+    /// Some terminal emulators, including xterm, use [`OSC`](C1::OperatingSystemCommand) sequences for setting the window title and changing the colour palette. They may also support terminating an [`OSC`](C1::OperatingSystemCommand) sequence with [`BEL`](C0::Alert) instead of [`ST`](C1::StringTerminator). Kermit used [`APC`](C1::ApplicationProgramCommand) to transmit commands.
+    #[meta(notation = "]", abbreviation = "OSC")]
+    OperatingSystemCommand = 0x9D,
+    /// Followed by a string of printable characters (`0x20` through `0x7E`) and format effectors (`0x08` through `0x0D`), terminated by [`ST`](C1::StringTerminator) (0x9C), intended for use to allow in-band signaling of protocol information, but rarely used for that purpose.
+    /// Some terminal emulators, including xterm, use [`OSC`](C1::OperatingSystemCommand) sequences for setting the window title and changing the colour palette. They may also support terminating an [`OSC`](C1::OperatingSystemCommand) sequence with [`BEL`](C0::Alert) instead of [`ST`](C1::StringTerminator). Kermit used [`APC`](C1::ApplicationProgramCommand) to transmit commands.
+    #[meta(notation = "^", abbreviation = "PM")]
+    PrivacyMessage = 0x9E,
+    /// Followed by a string of printable characters (`0x20` through `0x7E`) and format effectors (`0x08` through `0x0D`), terminated by [`ST`](C1::StringTerminator) (0x9C), intended for use to allow in-band signaling of protocol information, but rarely used for that purpose.
+    /// Some terminal emulators, including xterm, use [`OSC`](C1::OperatingSystemCommand) sequences for setting the window title and changing the colour palette. They may also support terminating an [`OSC`](C1::OperatingSystemCommand) sequence with [`BEL`](C0::Alert) instead of [`ST`](C1::StringTerminator). Kermit used [`APC`](C1::ApplicationProgramCommand) to transmit commands.
+    #[meta(notation = "_", abbreviation = "APC")]
+    ApplicationProgramCommand = 0x9F,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
