@@ -76,6 +76,9 @@ dependencies = [
 [[package]]
 name = "ansi"
 version = "0.1.0"
+dependencies = [
+ "enum-meta",
+]
 
 [[package]]
 name = "arrayref"
