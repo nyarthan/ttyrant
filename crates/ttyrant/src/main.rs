@@ -2,6 +2,7 @@ use application::Application;
 use winit::event_loop::EventLoop;
 
 mod application;
+mod cell;
 mod pty;
 mod window;
 
